@@ -9,10 +9,11 @@ type Level int
 
 const (
 	LevelDebug Level = iota
-	LevelOk
 	LevelInfo
+	LevelOk
 	LevelWarn
 	LevelError
+	LevelFatal
 )
 
 type Logger struct {

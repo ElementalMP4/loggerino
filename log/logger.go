@@ -53,15 +53,17 @@ func (l *Logger) write(level Level, prefix, source, msg string) {
 	var styledPrefix string
 	switch level {
 	case LevelOk:
-		styledPrefix = style.Green().Bold().String(prefix).Render()
+		styledPrefix = style.New().Green().Bold().String(prefix).Render()
 	case LevelInfo:
-		styledPrefix = style.Blue().Bold().String(prefix).Render()
+		styledPrefix = style.New().Blue().Bold().String(prefix).Render()
 	case LevelWarn:
-		styledPrefix = style.Yellow().Bold().String(prefix).Render()
+		styledPrefix = style.New().Yellow().Bold().String(prefix).Render()
 	case LevelError:
-		styledPrefix = style.Red().Bold().String(prefix).Render()
+		styledPrefix = style.New().Red().Bold().String(prefix).Render()
 	case LevelDebug:
-		styledPrefix = style.Magenta().Dim().String(prefix).Render()
+		styledPrefix = style.New().Magenta().Dim().String(prefix).Render()
+	case LevelFatal:
+		styledPrefix = style.New().BgRed().Bold().String(prefix).Render()
 	default:
 		styledPrefix = prefix
 	}
@@ -82,28 +84,36 @@ func (l *Logger) write(level Level, prefix, source, msg string) {
 		plainLine := stripANSI(line)
 		l.file.Write([]byte(plainLine))
 	}
+
+	if level == LevelFatal {
+		os.Exit(1)
+	}
 }
 
 // Text logs
 
 func (l *Logger) Ok(source, msg string) {
-	l.write(LevelOk, " OK ", source, msg)
+	l.write(LevelOk, "  OK ", source, msg)
 }
 
 func (l *Logger) Info(source, msg string) {
-	l.write(LevelInfo, "INFO", source, msg)
+	l.write(LevelInfo, " INFO", source, msg)
 }
 
 func (l *Logger) Warn(source, msg string) {
-	l.write(LevelWarn, "WARN", source, msg)
+	l.write(LevelWarn, " WARN", source, msg)
 }
 
 func (l *Logger) Error(source, msg string) {
-	l.write(LevelError, "FAIL", source, msg)
+	l.write(LevelError, " ERR ", source, msg)
 }
 
 func (l *Logger) Debug(source, msg string) {
-	l.write(LevelDebug, "DEBG", source, msg)
+	l.write(LevelDebug, " DEBG", source, msg)
+}
+
+func (l *Logger) Fatal(source, msg string) {
+	l.write(LevelFatal, "FATAL", source, msg)
 }
 
 // With format
@@ -126,4 +136,8 @@ func (l *Logger) Errorf(source, format string, v ...any) {
 
 func (l *Logger) Debugf(source, format string, v ...any) {
 	l.Debug(source, fmt.Sprintf(format, v...))
+}
+
+func (l *Logger) Fatalf(source, format string, v ...any) {
+	l.Fatal(source, fmt.Sprintf(format, v...))
 }

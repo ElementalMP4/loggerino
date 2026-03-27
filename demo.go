@@ -33,4 +33,6 @@ func main() {
 	logger.Warnf("custom-logger", "Custom warning with format: %f", 3.14)
 	logger.Errorf("custom-logger", "Custom error with format: %q", "error")
 	logger.Debugf("custom-logger", "Custom debug with format: %v", map[string]int{"key": 1})
+
+	logger.Fatal("failure-point", "Some significant error")
 }

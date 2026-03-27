@@ -146,11 +146,3 @@ func (s Style) Render() string {
 
 	return out
 }
-
-func Red() Style     { return New().Red() }
-func Green() Style   { return New().Green() }
-func Blue() Style    { return New().Blue() }
-func Yellow() Style  { return New().Yellow() }
-func Cyan() Style    { return New().Cyan() }
-func Magenta() Style { return New().Magenta() }
-func White() Style   { return New().White() }
