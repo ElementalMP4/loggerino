@@ -3,6 +3,8 @@ package log
 import (
 	"fmt"
 	"io"
+	"net"
+	"net/http"
 	"os"
 	"regexp"
 	"time"
@@ -141,4 +143,75 @@ func (l *Logger) Debugf(source, format string, v ...any) {
 
 func (l *Logger) Fatalf(source, format string, v ...any) {
 	l.Fatal(source, fmt.Sprintf(format, v...))
+}
+
+type responseWriter struct {
+	http.ResponseWriter
+	status int
+	size   int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.status = code
+	rw.ResponseWriter.WriteHeader(code)
+}
+
+func (rw *responseWriter) Write(b []byte) (int, error) {
+	if rw.status == 0 {
+		rw.status = 200
+	}
+	n, err := rw.ResponseWriter.Write(b)
+	rw.size += n
+	return n, err
+}
+
+func (l *Logger) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		rw := &responseWriter{ResponseWriter: w}
+
+		next.ServeHTTP(rw, r)
+
+		latency := time.Since(start)
+		status := rw.status
+		method := r.Method
+		path := r.URL.RequestURI()
+
+		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+
+		statusStr := fmt.Sprintf("%3d", status)
+		var styledStatus string
+
+		switch {
+		case status >= 200 && status < 300:
+			styledStatus = style.New().Green().Bold().String(statusStr).Render()
+		case status >= 300 && status < 400:
+			styledStatus = style.New().Cyan().Bold().String(statusStr).Render()
+		case status >= 400 && status < 500:
+			styledStatus = style.New().Yellow().Bold().String(statusStr).Render()
+		default:
+			styledStatus = style.New().Red().Bold().String(statusStr).Render()
+		}
+
+		var styledMethod string
+		switch method {
+		case "GET":
+			styledMethod = style.New().Blue().Bold().String(method).Render()
+		case "POST":
+			styledMethod = style.New().Green().Bold().String(method).Render()
+		case "PUT":
+			styledMethod = style.New().Yellow().Bold().String(method).Render()
+		case "DELETE":
+			styledMethod = style.New().Red().Bold().String(method).Render()
+		case "PATCH":
+			styledMethod = style.New().Magenta().Bold().String(method).Render()
+		default:
+			styledMethod = method
+		}
+
+		msg := fmt.Sprintf("%s %s %s (%s)", styledMethod, path, styledStatus, latency)
+
+		l.write(LevelInfo, styledStatus, ip, msg)
+	})
 }
