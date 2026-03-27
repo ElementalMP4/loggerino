@@ -1,5 +1,7 @@
 package log
 
+import "net/http"
+
 var std = New()
 
 // Default text logger
@@ -19,3 +21,5 @@ func Warnf(source, f string, v ...any)  { std.Warnf(source, f, v...) }
 func Errorf(source, f string, v ...any) { std.Errorf(source, f, v...) }
 func Debugf(source, f string, v ...any) { std.Debugf(source, f, v...) }
 func Fatalf(source, f string, v ...any) { std.Fatalf(source, f, v...) }
+
+func Middleware(next http.Handler) http.Handler { return std.Middleware(next) }
