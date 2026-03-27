@@ -3,6 +3,7 @@ package log
 import (
 	"io"
 	"sync"
+	"time"
 )
 
 type Level int
@@ -23,4 +24,12 @@ type Logger struct {
 	minLevel   Level
 	timeFormat string
 	mu         sync.Mutex
+}
+
+type RequestInfo struct {
+	Method  string
+	Path    string
+	Status  int
+	IP      string
+	Latency time.Duration
 }

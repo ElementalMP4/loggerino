@@ -3,7 +3,6 @@ package log
 import (
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"os"
 	"regexp"
@@ -165,53 +164,44 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	return n, err
 }
 
-func (l *Logger) Middleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
+func (l *Logger) LoggingMiddleware(info RequestInfo) {
+	statusStr := fmt.Sprintf("%3d", info.Status)
+	var styledStatus string
 
-		rw := &responseWriter{ResponseWriter: w}
+	switch {
+	case info.Status >= 200 && info.Status < 300:
+		styledStatus = style.New().Green().Bold().String(statusStr).Render()
+	case info.Status >= 300 && info.Status < 400:
+		styledStatus = style.New().Cyan().Bold().String(statusStr).Render()
+	case info.Status >= 400 && info.Status < 500:
+		styledStatus = style.New().Yellow().Bold().String(statusStr).Render()
+	default:
+		styledStatus = style.New().Red().Bold().String(statusStr).Render()
+	}
 
-		next.ServeHTTP(rw, r)
+	var styledMethod string
+	switch info.Method {
+	case "GET":
+		styledMethod = style.New().Blue().Bold().String(info.Method).Render()
+	case "POST":
+		styledMethod = style.New().Green().Bold().String(info.Method).Render()
+	case "PUT":
+		styledMethod = style.New().Yellow().Bold().String(info.Method).Render()
+	case "DELETE":
+		styledMethod = style.New().Red().Bold().String(info.Method).Render()
+	case "PATCH":
+		styledMethod = style.New().Magenta().Bold().String(info.Method).Render()
+	default:
+		styledMethod = info.Method
+	}
 
-		latency := time.Since(start)
-		status := rw.status
-		method := r.Method
-		path := r.URL.RequestURI()
+	latency := info.Latency.String()
 
-		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+	msg := fmt.Sprintf("%s %s %s (%s)", styledMethod, info.Path, styledStatus, latency)
 
-		statusStr := fmt.Sprintf("%3d", status)
-		var styledStatus string
-
-		switch {
-		case status >= 200 && status < 300:
-			styledStatus = style.New().Green().Bold().String(statusStr).Render()
-		case status >= 300 && status < 400:
-			styledStatus = style.New().Cyan().Bold().String(statusStr).Render()
-		case status >= 400 && status < 500:
-			styledStatus = style.New().Yellow().Bold().String(statusStr).Render()
-		default:
-			styledStatus = style.New().Red().Bold().String(statusStr).Render()
-		}
-
-		var styledMethod string
-		switch method {
-		case "GET":
-			styledMethod = style.New().Blue().Bold().String(method).Render()
-		case "POST":
-			styledMethod = style.New().Green().Bold().String(method).Render()
-		case "PUT":
-			styledMethod = style.New().Yellow().Bold().String(method).Render()
-		case "DELETE":
-			styledMethod = style.New().Red().Bold().String(method).Render()
-		case "PATCH":
-			styledMethod = style.New().Magenta().Bold().String(method).Render()
-		default:
-			styledMethod = method
-		}
-
-		msg := fmt.Sprintf("%s %s %s (%s)", styledMethod, path, styledStatus, latency)
-
-		l.write(LevelInfo, styledStatus, ip, msg)
-	})
+	level := LevelInfo
+	if info.Status >= 400 {
+		level = LevelError
+	}
+	l.write(level, styledStatus, info.IP, msg)
 }
