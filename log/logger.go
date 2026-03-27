@@ -3,10 +3,11 @@ package log
 import (
 	"fmt"
 	"io"
-	"loggerino/style"
 	"os"
 	"regexp"
 	"time"
+
+	"github.com/ElementalMP4/loggerino/style"
 )
 
 func New() *Logger {

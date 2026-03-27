@@ -1,8 +1,6 @@
 package main
 
-import (
-	"loggerino/log"
-)
+import "github.com/ElementalMP4/loggerino/log"
 
 func main() {
 	// Using the default logger
