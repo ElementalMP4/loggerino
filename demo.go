@@ -1,6 +1,10 @@
 package main
 
-import "github.com/ElementalMP4/loggerino/log"
+import (
+	"time"
+
+	"github.com/ElementalMP4/loggerino/log"
+)
 
 func main() {
 	// Using the default logger
@@ -31,6 +35,15 @@ func main() {
 	logger.Warnf("custom-logger", "Custom warning with format: %f", 3.14)
 	logger.Errorf("custom-logger", "Custom error with format: %q", "error")
 	logger.Debugf("custom-logger", "Custom debug with format: %v", map[string]int{"key": 1})
+
+	request := log.RequestInfo{
+		Method:  "GET",
+		Path:    "/api/v1/login",
+		Status:  200,
+		IP:      "192.168.192.254",
+		Latency: 30 * time.Millisecond,
+	}
+	logger.LoggingMiddleware(request)
 
 	logger.Fatal("failure-point", "Some significant error")
 }

@@ -52,29 +52,30 @@ func (l *Logger) write(level Level, prefix, source, msg string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	var styledPrefix string
+	styledPrefix := style.New().String("[ ")
 	switch level {
 	case LevelOk:
-		styledPrefix = style.New().Green().Bold().String(prefix).Render()
+		styledPrefix = styledPrefix.Green().Bold().String(prefix)
 	case LevelInfo:
-		styledPrefix = style.New().Blue().Bold().String(prefix).Render()
+		styledPrefix = styledPrefix.Blue().Bold().String(prefix)
 	case LevelWarn:
-		styledPrefix = style.New().Yellow().Bold().String(prefix).Render()
+		styledPrefix = styledPrefix.Yellow().Bold().String(prefix)
 	case LevelError:
-		styledPrefix = style.New().Red().Bold().String(prefix).Render()
+		styledPrefix = styledPrefix.Red().Bold().String(prefix)
 	case LevelDebug:
-		styledPrefix = style.New().Magenta().Dim().String(prefix).Render()
+		styledPrefix = styledPrefix.Magenta().Dim().String(prefix)
 	case LevelFatal:
-		styledPrefix = style.New().BgRed().Bold().String(prefix).Render()
+		styledPrefix = styledPrefix.BgRed().Bold().String(prefix)
 	default:
-		styledPrefix = prefix
+		styledPrefix = styledPrefix.String(prefix)
 	}
+	styledPrefix = styledPrefix.Reset().String(" ]")
 
 	timestampStyled := style.New().BrightBlack().String(l.timestamp()).Reset().Render()
 	sourcePadded := fmt.Sprintf("%15s", source)
-	sourceStyled := style.New().Bold().Magenta().String(sourcePadded).Render()
+	sourceStyled := style.New().String("[").Bold().Magenta().String(sourcePadded).Reset().String("]").Render()
 
-	line := fmt.Sprintf("%s  %s  %s: %s\n", timestampStyled, styledPrefix, sourceStyled, msg)
+	line := fmt.Sprintf("%s %s %s %s\n", timestampStyled, sourceStyled, styledPrefix.Render(), msg)
 
 	if level >= LevelError {
 		l.err.Write([]byte(line))
@@ -95,27 +96,27 @@ func (l *Logger) write(level Level, prefix, source, msg string) {
 // Text logs
 
 func (l *Logger) Ok(source, msg string) {
-	l.write(LevelOk, "  OK ", source, msg)
+	l.write(LevelOk, " OK ", source, msg)
 }
 
 func (l *Logger) Info(source, msg string) {
-	l.write(LevelInfo, " INFO", source, msg)
+	l.write(LevelInfo, "INFO", source, msg)
 }
 
 func (l *Logger) Warn(source, msg string) {
-	l.write(LevelWarn, " WARN", source, msg)
+	l.write(LevelWarn, "WARN", source, msg)
 }
 
 func (l *Logger) Error(source, msg string) {
-	l.write(LevelError, " ERR ", source, msg)
+	l.write(LevelError, "FAIL", source, msg)
 }
 
 func (l *Logger) Debug(source, msg string) {
-	l.write(LevelDebug, " DEBG", source, msg)
+	l.write(LevelDebug, "DBUG", source, msg)
 }
 
 func (l *Logger) Fatal(source, msg string) {
-	l.write(LevelFatal, "FATAL", source, msg)
+	l.write(LevelFatal, "STOP", source, msg)
 }
 
 // With format
@@ -166,8 +167,8 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 
 func (l *Logger) LoggingMiddleware(info RequestInfo) {
 	statusStr := fmt.Sprintf("%3d", info.Status)
-	var styledStatus string
 
+	var styledStatus string
 	switch {
 	case info.Status >= 200 && info.Status < 300:
 		styledStatus = style.New().Green().Bold().String(statusStr).Render()
@@ -195,13 +196,12 @@ func (l *Logger) LoggingMiddleware(info RequestInfo) {
 		styledMethod = info.Method
 	}
 
-	latency := info.Latency.String()
-
-	msg := fmt.Sprintf("%s %s %s (%s)", styledMethod, info.Path, styledStatus, latency)
+	latency := style.New().Dim().Sprintf("(%s)", info.Latency.String()).Render()
+	msg := fmt.Sprintf("%s %s %s %s", styledStatus, styledMethod, info.Path, latency)
 
 	level := LevelInfo
 	if info.Status >= 400 {
 		level = LevelError
 	}
-	l.write(level, styledStatus, info.IP, msg)
+	l.write(level, "HTTP", info.IP, msg)
 }
